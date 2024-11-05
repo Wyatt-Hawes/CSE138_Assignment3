@@ -2,7 +2,7 @@ FROM denoland/deno
 
 WORKDIR /app
 
-COPY server.ts key_value_routes.ts view_routes.ts replicate.ts ./
+COPY server.ts key_value_routes.ts view_routes.ts replicate.ts internal_routes.ts ./
 
 RUN deno install
 
