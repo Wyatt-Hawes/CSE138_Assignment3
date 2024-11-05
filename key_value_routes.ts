@@ -3,7 +3,7 @@ import {Router} from 'https://deno.land/x/oak@v17.1.3/mod.ts';
 const key_value_router = new Router();
 
 key_value_router.get('/kvs/:value', (context) => {
-  // Some code
+  // Some code, take note of the bodies casual metadata
   const value = context.params.value;
   context.response.body = `Hello World! You entered: ${value}`;
   context.response.status = 201;
