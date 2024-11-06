@@ -1,5 +1,5 @@
 import {Router} from 'https://deno.land/x/oak@v17.1.3/mod.ts';
-
+import {my_obj} from './key_value_routes.ts';
 const view_router = new Router();
 
 view_router.get('/', (context) => {
