@@ -1,6 +1,7 @@
 import {Router} from 'https://deno.land/x/oak@v17.1.3/mod.ts';
-import {my_obj} from './key_value_routes.ts';
 const view_router = new Router();
+
+// Get VIEW from environmental variable
 
 view_router.get('/', (context) => {
   context.response.body = 'Hello World!';
@@ -9,15 +10,15 @@ view_router.get('/', (context) => {
 
 view_router.put('/view', (context) => {
   const body = context.request.body;
-  // Some code
+  // Add to view
 });
 
 view_router.get('/view', (context) => {
-  // Some code
+  // Return view
 });
 
 view_router.delete('/view', (context) => {
-  // Some code
+  // Delete from view
 });
 
 export default view_router;

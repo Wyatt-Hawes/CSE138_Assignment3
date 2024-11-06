@@ -10,6 +10,7 @@
 
 - Now you should be able to run deno normally with
   `deno run --allow-net server.ts`
+  - you can use `deno run --allow-net --watch server.ts` to have the server auto-refresh with your code changes
 
 # Docker
 
