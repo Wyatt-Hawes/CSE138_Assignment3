@@ -1,6 +1,6 @@
 import {Router} from 'https://deno.land/x/oak@v17.1.3/mod.ts';
 const view_router = new Router();
-
+export const view = [];
 // Get VIEW from environmental variable
 
 view_router.get('/', (context) => {

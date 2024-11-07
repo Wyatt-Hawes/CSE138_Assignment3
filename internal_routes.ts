@@ -5,7 +5,7 @@ import {kv_pairs} from './key_value_routes.ts';
 const internal_router = new Router();
 
 // Lets say this is to be called by other systems to notify us of any updates regarding our data
-internal_router.get('/update', (context) => {
+internal_router.post('/update', (context) => {
   // Some code
   // Reflect change in kv_pairs
 });
