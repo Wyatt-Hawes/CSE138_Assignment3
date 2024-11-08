@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 )
-type js map[string]interface{}
-var kv_pairs = make(js)
+
 
 
 func get_key(key string) (js, int) {
@@ -21,7 +23,7 @@ func get_key(key string) (js, int) {
 	return js{"result": value}, http.StatusOK
 }
 
-func post_key(key string, value string) (js, int) {
+func put_key(key string, value string) (js, int) {
 	_, exists := kv_pairs[key]
 
 	// Set default response
@@ -47,4 +49,28 @@ func delete_key(key string) (js, int) {
 	delete(kv_pairs, key)
 
 	return js{"result": "deleted"}, http.StatusOK
+}
+
+func replicate(method string, key string, value string){
+	for _, v := range view{
+		// For each view, make a request to it with the update
+		url:= fmt.Sprintf("http://%s/update",v)
+		log(fmt.Sprintf("URL:%s",url))
+		body := js{"method":method,"key":key,"value":value}
+		body_js, _ := json.Marshal(body)
+
+		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body_js))
+		req.Header.Set("Content-Type", "application/json");
+
+		// Asynchronously communicate to server for each value
+		go communicate(req);
+	}
+}
+
+func communicate(req *http.Request){
+	client := &http.Client{}
+
+	// Probably check for down servers here with the response/error
+	//resp, err := client.Do(req);
+	client.Do(req);
 }
