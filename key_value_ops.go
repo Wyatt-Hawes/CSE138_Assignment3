@@ -14,6 +14,8 @@ func get_key(key string) (js, int) {
 		return js{"error": "Key is too long"}, http.StatusBadRequest
 	}
 
+	// Check metadata version. If meta-data is GREATER THAN current version, invalid request(?)
+
 	value, exists := kv_pairs[key]
 
 	if !exists {
@@ -24,6 +26,8 @@ func get_key(key string) (js, int) {
 }
 
 func put_key(key string, value string) (js, int) {
+	// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
+
 	_, exists := kv_pairs[key]
 
 	// Set default response
@@ -41,6 +45,8 @@ func put_key(key string, value string) (js, int) {
 }
 
 func delete_key(key string) (js, int) {
+	// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
+
 	_, exists := kv_pairs[key]
 
 	if !exists {
