@@ -153,7 +153,7 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 		case "DELETE":
 			log("Received external Update for DELETE")
 			delete_key(key);
-			//set_version(key, version)
+			set_version(key, version)
 			break;
 		default:
 			break;
