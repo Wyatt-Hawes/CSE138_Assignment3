@@ -15,21 +15,24 @@ type js map[string]interface{}
 // Debug false disables all prints done with the log() function
 const debug bool = true
 var kv_pairs = make(js) // Creates an empty map for us to use
+var kv_version = make(js)
 
-// var view []string = strings.Split(os.Getenv("VIEW"),",");
+// var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
 // Above works getting env, for testing, redefine
-var view = []string{"localhost:8090", "localhost:8091"}
+var VIEW = []string{"localhost:8090", "localhost:8091"}
 
+//var ip string = os.Getenv("IP");
+var IP = "localhost:8091"
 
 func main(){
 	http.HandleFunc("/kvs/", kvs_handler) // All method types go to each handler (GET POST PUT DELETE etc.)
 	http.HandleFunc("/update", update_handler)
 
-	fmt.Fprintln(os.Stdout,view);
+	fmt.Fprintln(os.Stdout,VIEW);
 	fmt.Fprintln(os.Stdout, "Server running!\n---------------")
 
 	// Change from 8090 to 8091 when doing scuffed replication testing (8090 -> launch 1 server, 8091 -> launch 2nd server)
-	http.ListenAndServe(":8090", nil)
+	http.ListenAndServe(":8091", nil)
 }
 
 func kvs_handler(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +78,7 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 		// Replicate if successful
 		if (status == http.StatusCreated || status == http.StatusOK){
 			log("Replicating PUT")
-			go replicate("PUT", key, value_str); // Go launches a `goroutine` aka async call
+			go replicate("PUT", key, value_str, get_version(key)); // Go launches a `goroutine` aka async call
 		}
 
 		break
@@ -88,7 +91,7 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 		// Replicate if successful
 		if (status == http.StatusCreated || status == http.StatusOK){
 			log("Replicating DELETE")
-			go replicate("DELETE", key, ""); // Go launches a `goroutine` aka async call
+			go replicate("DELETE", key, "", get_version(key)); // Go launches a `goroutine` aka async call
 		}
 		break
 
@@ -118,14 +121,25 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	method_d, e1 := body["method"]
 	key_d, e2 := body["key"]
 	value_d, e3 := body["value"]
+	version_d, e7 := body["version"]
 
 	// Convert all to string
 	method, e4 := method_d.(string)
 	key, e5 := key_d.(string)
 	value, e6 := value_d.(string)
+	version_f, e8 := version_d.(float64)
+	version := int(version_f)
 
+	// log(body)
+	// log(fmt.Sprintf("%t %t %t %t %t %t %t %t",!e1, !e2, !e3, !e4, !e5, !e6, !e7, !e8))
+	// log(version)
+	// log(reflect.TypeOf(version))
+	// log(version_d)
+	// log(reflect.TypeOf(version_d))
+	// log(fmt.Sprintf("Type is %t", version))
 	// If any errors, drop request
-	if(!e1 || !e2 || !e3 || !e4 || !e5 || !e6){
+	if(!e1 || !e2 || !e3 || !e4  || !e5 || !e6 || !e7 || !e8){
+		log("Error with update")
 		return;
 	}
 
@@ -134,13 +148,16 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 		case "PUT":
 			log("Received external Update for PUT")
 			put_key(key, value)
+			set_version(key, version)
 			break;
 		case "DELETE":
 			log("Received external Update for DELETE")
 			delete_key(key);
+			//set_version(key, version)
 			break;
 		default:
 			break;
 	}
 	w.WriteHeader(http.StatusOK);
+	return;
 }
