@@ -14,9 +14,7 @@ import (
 // Nov 18th, ~5:00pm meet at library
 // replicate DELETE if server goes down // replicate PUT if the server comes back (Madison)
 // Sync key value pairs when server first starts (Maggie)
-// Meta-data versioning to invalidate requests/replicas (Wyatt)
-
-// VIEW operations (GET PUT DELETE)
+// Meta-data versioning to invalidate requests/replicas & VIEW operations (GET PUT DELETE)(Wyatt)
 
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
