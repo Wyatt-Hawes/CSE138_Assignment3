@@ -9,6 +9,15 @@ import (
 	"strings"
 )
 
+// PUT ALICE, should BOB get the new value?
+
+// Nov 18th, ~5:00pm meet at library
+// replicate DELETE if server goes down // replicate PUT if the server comes back (Madison)
+// Sync key value pairs when server first starts (Maggie)
+// Meta-data versioning to invalidate requests/replicas (Wyatt)
+
+// VIEW operations (GET PUT DELETE)
+
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
 
@@ -142,6 +151,8 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 		log("Error with update")
 		return;
 	}
+
+	// Check if version is acceptable, tie break with S1 < S2
 
 	// Just do the same operation on our version
 	switch method{
