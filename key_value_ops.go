@@ -10,11 +10,6 @@ import (
 
 
 func get_key(key string) (js, int) {
-	if len(key) > 50 {
-		return js{"error": "Key is too long"}, http.StatusBadRequest
-	}
-
-	// Check metadata version. If meta-data is GREATER THAN current version, invalid request(?)
 
 	value, exists := kv_pairs[key]
 	version := get_version(key)
@@ -30,7 +25,6 @@ func get_key(key string) (js, int) {
 }
 
 func put_key(key string, value string) (js, int) {
-	// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
 
 	_, exists := kv_pairs[key]
 
@@ -87,7 +81,7 @@ func replicate(method string, key string, value string, version int){
 		log(fmt.Sprintf("URL:%s",url))
 
 		// Form body with all needed info (for now)
-		body := js{"method":method,"key":key,"value":value, "version": version}
+		body := js{"method":method,"key":key,"value":value, "version": version, "ip":IP}
 		body_js, _ := json.Marshal(body)
 
 		// Create the request
