@@ -16,14 +16,14 @@ func check_valid_metadata(method string,key string, request_version int)(bool){
 
 	switch (method){
 	case "GET":
-		// Check metadata version. If meta-data is GREATER THAN current version, invalid request(?)
+		// Check request version. If request is GREATER THAN server version, invalid request(?)
 		if(request_version > server_version){
 			return false
 		}
 		break
 
 	case "PUT", "DELETE":
-		// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
+		// Check request version, server_version must be EQUAL or GREATER, if LESS, then reject
 		if(request_version < server_version){
 			return false
 		}
