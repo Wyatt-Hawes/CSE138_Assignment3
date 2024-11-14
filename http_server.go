@@ -9,12 +9,17 @@ import (
 	"strings"
 )
 
+// *************************************************************************************************
+
 // PUT ALICE, should BOB get the new value?
 
 // Nov 18th, ~5:00pm meet at library
 // replicate DELETE if server goes down // replicate PUT if the server comes back (Madison)
 // Sync key value pairs when server first starts (Maggie)
 // Meta-data versioning to invalidate requests/replicas & VIEW operations (GET PUT DELETE)(Wyatt)
+
+// *************************************************************************************************
+
 
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
@@ -31,6 +36,7 @@ var VIEW = []string{"localhost:8090", "localhost:8091"}
 //var ip string = os.Getenv("IP");
 var IP = "localhost:8090"
 
+
 func main(){
 	http.HandleFunc("/kvs/", kvs_handler) // All method types go to each handler (GET POST PUT DELETE etc.)
 	http.HandleFunc("/update", update_handler)
@@ -41,6 +47,7 @@ func main(){
 	// Change from 8090 to 8091 when doing scuffed replication testing (8090 -> launch 1 server, 8091 -> launch 2nd server)
 	http.ListenAndServe(":8090", nil)
 }
+
 
 func kvs_handler(w http.ResponseWriter, r *http.Request) {
 	// Set return type header
@@ -76,10 +83,8 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 	var status int = http.StatusMethodNotAllowed
 
 
-
 	switch method {
 	case "GET":
-
 		// Did meta_data exist on the body, was it not null, and does the key match the current key?
 		if(meta_success && len(meta_data) != 0 && key == m_data_key){
 			log("GET has valid metadata")
@@ -92,10 +97,9 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 		
 		j_res, status = get_key(key)
 		break
-	case "PUT":
-	
 
-		
+
+	case "PUT":
 		// Did meta_data exist on the body, was it not null, and does the key match the current key?
 		if(meta_success && len(meta_data) != 0 && key == m_data_key){
 			log("PUT has valid metadata")
@@ -125,12 +129,10 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 			log("Replicating PUT")
 			go replicate("PUT", key, value_str, get_version(key)); // Go launches a `goroutine` aka async call
 		}
-
 		break
 
-	case "DELETE":
 
-	
+	case "DELETE":
 		// Did meta_data exist on the body, was it not null, and does the key match the current key?
 		if(meta_success && len(meta_data) != 0 && key == m_data_key){
 			log("Get has valid metadata")
@@ -151,6 +153,7 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 		}
 		break
 
+
 	default:
 		// Break if not a method we have, by default is not_implemented
 		break;
@@ -168,7 +171,7 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 
 func update_handler(w http.ResponseWriter, r *http.Request){
 	// Get all we need from the body
-	//log("Got an update from someone")
+	// log("Got an update from someone")
 	b_data, _ := io.ReadAll(r.Body)
 	var body js
 	json.Unmarshal(b_data, &body)
@@ -225,11 +228,13 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 			put_key(key, value)
 			set_version(key, new_version)
 			break;
+
 		case "DELETE":
 			log("Received external Update for DELETE |" + req_ip)
 			delete_key(key);
 			set_version(key, new_version)
 			break;
+
 		default:
 			break;
 	}

@@ -8,11 +8,10 @@ import (
 )
 
 
-
 func get_key(key string) (js, int) {
-
 	value, exists := kv_pairs[key]
 	version := get_version(key)
+
 	if !exists {
 		res:= js{"error": "Key does not exist"}
 		res["casual-metadata"] = js{"key":key, "version":version}
@@ -24,8 +23,8 @@ func get_key(key string) (js, int) {
 	return js{"result": value, "casual-metadata":js{"key":key,"version":version}}, http.StatusOK
 }
 
-func put_key(key string, value string) (js, int) {
 
+func put_key(key string, value string) (js, int) {
 	_, exists := kv_pairs[key]
 
 	// Set default response
@@ -46,6 +45,7 @@ func put_key(key string, value string) (js, int) {
 	return res, status
 }
 
+
 func delete_key(key string) (js, int) {
 	// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
 
@@ -64,8 +64,8 @@ func delete_key(key string) (js, int) {
 	return res, http.StatusOK
 }
 
-func replicate(method string, key string, value string, version int){
 
+func replicate(method string, key string, value string, version int){
 	for _, v := range VIEW{
 		/*
 			We should probably have some logic here to NOT communicate with ourselves, but 
@@ -93,6 +93,7 @@ func replicate(method string, key string, value string, version int){
 	}
 }
 
+
 func communicate(req *http.Request){
 	client := &http.Client{}
 
@@ -102,6 +103,7 @@ func communicate(req *http.Request){
 
 	// Maybe check for errors here and add/remove servers from the VIEW
 }
+
 
 func get_add_version(key string)(version int){
 	vs_d, exists := kv_version[key];
@@ -121,6 +123,7 @@ func get_add_version(key string)(version int){
 	return vs
 }
 
+
 func get_version(key string)(version int){
 	v_d, _ := kv_version[key]
 
@@ -129,7 +132,6 @@ func get_version(key string)(version int){
 	return v;
 }
 
-//func get_version
 
 func set_version(key string, version int){
 	log("Setting: "+key+" to "+fmt.Sprint(version))
