@@ -26,7 +26,9 @@ type js map[string]interface{}
 
 // Debug false disables all prints done with the log() function
 const debug bool = true
-var kv_pairs = make(js) // Creates an empty map for us to use
+
+// Parallel maps for tracking values and versions of keys
+var kv_pairs = make(js)
 var kv_version = make(js)
 
 // var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
@@ -60,6 +62,7 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Get method
 	method := r.Method
+	log("--- " + method)
 
 	// Get body
 	b_data, _ := io.ReadAll(r.Body)
@@ -88,7 +91,7 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 		// Did meta_data exist on the body, was it not null, and does the key match the current key?
 		if(meta_success && len(meta_data) != 0 && key == m_data_key){
 			log("GET has valid metadata")
-			valid := check_valid_metadata("GET",key, int(m_data_version.(float64)));
+			valid := check_valid_metadata("GET",key, int(m_data_version.(float64)))
 			if(!valid){
 				j_res, status = js{"error": "Causal dependencies not satisfied; try again later"}, http.StatusServiceUnavailable
 				break

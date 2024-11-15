@@ -8,6 +8,7 @@ import (
 )
 
 
+/*
 func get_key(key string) (js, int) {
 	value, exists := kv_pairs[key]
 	version := get_version(key)
@@ -22,8 +23,37 @@ func get_key(key string) (js, int) {
 	}
 	return js{"result": value, "casual-metadata":js{"key":key,"version":version}}, http.StatusOK
 }
+*/
+
+func get_key(key string) (js, int) {
+	var res js
+	var status int
+
+	value, exists := kv_pairs[key]
+	version := get_version(key)
+
+	// If key does NOT exist, error
+	if !exists {
+		res = js{
+			"error": "Key does not exist",
+		}
+		status = http.StatusNotFound
+	
+	} else {
+		// If key DOES exist, return value
+		res = js{
+			"result": "found",
+			"value":  value,
+			"casual-metadata": version,
+		}
+		status = http.StatusOK
+	}
+
+	return res, status
+}
 
 
+/*
 func put_key(key string, value string) (js, int) {
 	_, exists := kv_pairs[key]
 
@@ -44,8 +74,40 @@ func put_key(key string, value string) (js, int) {
 
 	return res, status
 }
+*/
+
+func put_key(key string, value string) (js, int) {
+	var res js
+	var status int
+
+	_, exists := kv_pairs[key]
+
+	if !exists {
+		// If key does NOT exist, add
+		kv_pairs[key] = value
+		version := get_add_version(key)
+		res = js{
+			"result": "created",
+			"causal-metadata":  version,
+		}
+		status = http.StatusCreated
+
+	} else {
+		// If key DOES exists, replace value
+		kv_pairs[key] = value
+		version := get_add_version(key)
+		res = js{
+			"result": "replaced",
+			"causal-metadata":  version,
+		}
+		status = http.StatusOK
+	}
+
+	return res, status
+}
 
 
+/*
 func delete_key(key string) (js, int) {
 	// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
 
@@ -62,6 +124,35 @@ func delete_key(key string) (js, int) {
 	res["casual-metadata"] = js{"key":key, "version": version}
 
 	return res, http.StatusOK
+}
+*/
+
+func delete_key(key string) (js, int) {
+	var res js
+	var status int
+
+	_, exists := kv_pairs[key]
+
+	if !exists {
+		// If key does NOT exist, error
+		res = js{
+			"error": "Key does not exist",
+		}
+		status = http.StatusNotFound
+	
+	} else {
+		// If key DOES exists, delete
+		delete(kv_pairs, key)
+		version := get_add_version(key)
+
+		res = js{
+			"result": "deleted",
+			"casual-metadata": version,
+		}
+		status = http.StatusOK
+	}
+	
+	return res, status
 }
 
 
@@ -108,6 +199,7 @@ func communicate(req *http.Request){
 func get_add_version(key string)(version int){
 	vs_d, exists := kv_version[key];
 	vs, e := vs_d.(int)
+
 	// If no entry exists, create it with a version 1
 	if (!exists || !e){
 		log("Version doesnt exist")
