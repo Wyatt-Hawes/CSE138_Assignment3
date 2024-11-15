@@ -1,6 +1,9 @@
+// helper_funcs.go
+
 package main
 
 import "fmt"
+
 
 func log(s any) {
 	if debug {
@@ -8,9 +11,8 @@ func log(s any) {
 	}
 }
 
-func check_valid_metadata(method string,key string, request_version int)(bool){
 
-	
+func check_valid_metadata(method string,key string, request_version int)(bool){
 	server_version := get_version(key);
 	log(fmt.Sprintf("Version diff %d | %d",server_version, request_version))
 
@@ -29,6 +31,7 @@ func check_valid_metadata(method string,key string, request_version int)(bool){
 		}
 		set_version(key,request_version)
 		break
+	
 	default:
 		return false;
 	}

@@ -1,3 +1,5 @@
+// http_server.go
+
 package main
 
 import (
@@ -269,7 +271,6 @@ func view_handler(w http.ResponseWriter, r *http.Request){
 	socket_address_d, exists := body["socket-address"]
 	socket_address, success := socket_address_d.(string)
 
-
 	var j_res js = js{}
 	var status int = http.StatusMethodNotAllowed;
 
@@ -278,6 +279,7 @@ func view_handler(w http.ResponseWriter, r *http.Request){
 		// Get all views
 		j_res, status = get_all_view()
 		break;
+
 	case "PUT":
 		// Add new view
 		if (!exists || !success){
@@ -287,6 +289,7 @@ func view_handler(w http.ResponseWriter, r *http.Request){
 		}
 		j_res, status = add_view(socket_address)
 		break;
+
 	case "DELETE":
 		// Delete view
 		if (!exists || !success){
@@ -296,6 +299,7 @@ func view_handler(w http.ResponseWriter, r *http.Request){
 		}
 		j_res, status = delete_view(socket_address)
 		break;
+
 	default:
 		break;
 	}
