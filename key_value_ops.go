@@ -21,7 +21,7 @@ func get_key(key string) (js, int) {
 		}
 		return res, http.StatusNotFound
 	}
-	return js{"result": value, "casual-metadata":js{"key":key,"version":version}}, http.StatusOK
+	return js{"result": "found","value":value, "casual-metadata":js{"key":key,"version":version}}, http.StatusOK
 }
 
 func put_key(key string, value string) (js, int) {
@@ -50,15 +50,20 @@ func delete_key(key string) (js, int) {
 	// Check metadata version, version must be EQUAL or GREATER, if LESS, then reject
 
 	_, exists := kv_pairs[key]
-
+	version := get_version(key)
 	if !exists {
-		return js{"error": "Key does not exist"}, http.StatusNotFound
+		resp := js{"error": "Key does not exist", "casual-metadata":nil}
+		if version != 0{
+			resp["casual-metadata"] = js{"key":key, "version": version}
+		}
+		
+		return resp, http.StatusNotFound
 	}
 	
 	delete(kv_pairs, key)
 	res := js{"result": "deleted"}
 
-	version := get_add_version(key)
+	version = get_add_version(key)
 	res["casual-metadata"] = js{"key":key, "version": version}
 
 	return res, http.StatusOK
