@@ -24,6 +24,10 @@ const debug bool = true
 var kv_pairs = make(js) // Creates an empty map for us to use
 var kv_version = make(js)
 
+// DO NOT EDIT ORIGINAL_VIEW
+// var ORIGINAL_VIEW []string = strings.Split(os.Getenv("VIEW"),",");
+var ORIGINAL_VIEW = []string{"localhost:8090", "localhost:8091"}
+
 // var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
 // Above works getting env, for testing, redefine
 var VIEW = []string{"localhost:8090", "localhost:8091"}
@@ -34,6 +38,7 @@ var IP = "localhost:8090"
 func main(){
 	http.HandleFunc("/kvs/", kvs_handler) // All method types go to each handler (GET POST PUT DELETE etc.)
 	http.HandleFunc("/update", update_handler)
+	http.HandleFunc("/view", view_handler)
 
 	fmt.Fprintln(os.Stdout,VIEW);
 	fmt.Fprintln(os.Stdout, "Server running!\n---------------")
@@ -235,4 +240,62 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	}
 	w.WriteHeader(http.StatusOK);
 	return;
+}
+
+func view_handler(w http.ResponseWriter, r *http.Request){
+	// Set return header
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get method
+	method := r.Method
+
+	// Get body
+	b_data, _ := io.ReadAll(r.Body)
+	var body js
+	json.Unmarshal(b_data, &body)
+	log("Body: " + fmt.Sprint(body))
+
+	// Get "socket-address" attribute (if exists)
+	socket_address_d, exists := body["socket-address"]
+	socket_address, success := socket_address_d.(string)
+
+
+	var j_res js = js{}
+	var status int = http.StatusMethodNotAllowed;
+
+	switch method{
+	case "GET":
+		// Get all views
+		j_res, status = get_all_view()
+		break;
+	case "PUT":
+		// Add new view
+		if (!exists || !success){
+			j_res = js{"error": "No socket provided in body"}
+			status = http.StatusBadRequest
+			break
+		}
+		j_res, status = add_view(socket_address)
+		break;
+	case "DELETE":
+		// Delete view
+		if (!exists || !success){
+			j_res = js{"error": "No socket provided in body"}
+			status = http.StatusBadRequest
+			break
+		}
+		j_res, status = delete_view(socket_address)
+		break;
+	default:
+		break;
+	}
+
+	// the _ is the error value, we are dropping it
+	j_data, _ := json.Marshal(j_res)
+
+	// After operations above complete, send our response
+	log("Sending Response")
+	log("----------------")
+	w.WriteHeader(status)
+	w.Write(j_data)
 }
