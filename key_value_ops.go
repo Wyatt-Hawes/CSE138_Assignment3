@@ -27,7 +27,7 @@ func get_key(key string) (js, int) {
 		res = js{
 			"result": "found",
 			"value":  value,
-			"casual-metadata": js{
+			"causal-metadata": js{
 				"key": key,
 				"version": version,
 			},
@@ -96,7 +96,7 @@ func delete_key(key string) (js, int) {
 
 		res = js{
 			"result": "deleted",
-			"casual-metadata": js{
+			"causal-metadata": js{
 				"key": key,
 				"version": version,
 			},
