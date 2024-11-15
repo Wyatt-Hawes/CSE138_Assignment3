@@ -27,7 +27,10 @@ func get_key(key string) (js, int) {
 		res = js{
 			"result": "found",
 			"value":  value,
-			"casual-metadata": version,
+			"casual-metadata": js{
+				"key": key,
+				"version": version,
+			},
 		}
 		status = http.StatusOK
 	}
@@ -48,7 +51,10 @@ func put_key(key string, value string) (js, int) {
 		version := get_add_version(key)
 		res = js{
 			"result": "created",
-			"causal-metadata":  version,
+			"causal-metadata":  js{
+				"key": key,
+				"version": version,
+			},
 		}
 		status = http.StatusCreated
 
@@ -58,7 +64,10 @@ func put_key(key string, value string) (js, int) {
 		version := get_add_version(key)
 		res = js{
 			"result": "replaced",
-			"causal-metadata":  version,
+			"causal-metadata":  js{
+				"key": key,
+				"version": version,
+			},
 		}
 		status = http.StatusOK
 	}
@@ -87,7 +96,10 @@ func delete_key(key string) (js, int) {
 
 		res = js{
 			"result": "deleted",
-			"casual-metadata": version,
+			"casual-metadata": js{
+				"key": key,
+				"version": version,
+			},
 		}
 		status = http.StatusOK
 	}

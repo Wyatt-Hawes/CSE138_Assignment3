@@ -58,15 +58,20 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 	b_data, _ := io.ReadAll(r.Body)
 	var body js
 	json.Unmarshal(b_data, &body)
-	log("Body: " + fmt.Sprint(body))
+	log("Req Body: " + fmt.Sprint(body))
 
 	// Get value from body (if exists)
 	value, val_exists := body["value"]
 	value_str, val_success := value.(string)
 
-	// Get meta-data (dependent version) from body
-	meta_data, meta_data_exists := body["causal-metadata"]
-	log(fmt.Sprintf("Request Meta-Data: %v", meta_data))
+	// Get meta-data from body
+	meta_data, meta_success := body["causal-metadata"].(map[string]interface{})
+
+	// Get meta-data fields
+	m_data_key, _ := meta_data["key"]
+	m_data_version, _ := meta_data["version"]
+	log(fmt.Sprintf("  key: %v", m_data_key))
+	log(fmt.Sprintf("  version: %v", m_data_version))
 
 	// Create response variable, j_res is a map of |string -> any|
 	var j_res js = js{}
@@ -75,15 +80,17 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 
 	switch method {
 	case "GET":
-		if(meta_data_exists){
-			valid := check_valid_metadata("GET", key, int(meta_data.(float64)))
+		if(meta_success && len(meta_data) != 0 && key == m_data_key){
+			log("GET meta-data is for correct key")
+
+			valid := check_valid_metadata("GET", key, int(m_data_version.(float64)))
 			if(!valid){
 				j_res  = js{"error": "Causal dependencies not satisfied; try again later"}
 				status = http.StatusServiceUnavailable
 				break
 			}
 		}
-		// else condition for error if no meta-data ??
+		// else condition for error if bad meta-data ??
 		
 		// GET operation
 		j_res, status = get_key(key)
@@ -91,15 +98,17 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 
 
 	case "PUT":
-		if(meta_data_exists){
-			valid := check_valid_metadata("PUT", key, int(meta_data.(float64)));
+		if(meta_success && len(meta_data) != 0 && key == m_data_key){
+			log("PUT meta-data is for correct key")
+
+			valid := check_valid_metadata("PUT", key, int(m_data_version.(float64)));
 			if(!valid){
 				j_res = js{"error": "Causal dependencies not satisfied; try again later"}
 				status = http.StatusServiceUnavailable
 				break
 			}
 		}
-		// else condition for error if no meta-data ??
+		// else condition for error if bad meta-data ??
 
 		// Check for string value
 		if !val_exists || !val_success {
@@ -128,15 +137,15 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 
 	case "DELETE":
 		// Did meta_data exist on the body, was it not null, and does the key match the current key?
-		if(meta_data_exists){
-			valid := check_valid_metadata("DELETE", key, int(meta_data.(float64)));
+		if(meta_success && len(meta_data) != 0 && key == m_data_key){
+			valid := check_valid_metadata("DELETE", key, int(m_data_version.(float64)));
 			if(!valid){
 				j_res = js{"error": "Causal dependencies not satisfied; try again later"}
 				status = http.StatusServiceUnavailable
 				break
 			}
 		}
-		// else condition for error if no meta-data ??
+		// else condition for error if bad meta-data ??
 
 		// DELETE operation
 		j_res, status = delete_key(key)
