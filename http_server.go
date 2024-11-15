@@ -9,17 +9,6 @@ import (
 	"strings"
 )
 
-// *************************************************************************************************
-
-// PUT ALICE, should BOB get the new value?
-
-// Nov 18th, ~5:00pm meet at library
-// replicate DELETE if server goes down // replicate PUT if the server comes back (Madison)
-// Sync key value pairs when server first starts (Maggie)
-// Meta-data versioning to invalidate requests/replicas & VIEW operations (GET PUT DELETE)(Wyatt)
-
-// *************************************************************************************************
-
 
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
@@ -40,10 +29,11 @@ var IP = "localhost:8090"
 
 
 func main(){
-	http.HandleFunc("/kvs/", kvs_handler) // All method types go to each handler (GET POST PUT DELETE etc.)
+	// All method types go to each handler (GET POST PUT DELETE etc.)
+	http.HandleFunc("/kvs/", kvs_handler)
 	http.HandleFunc("/update", update_handler)
 
-	fmt.Fprintln(os.Stdout,VIEW);
+	fmt.Fprintln(os.Stdout,"View: ", VIEW);
 	fmt.Fprintln(os.Stdout, "Server running!\n---------------")
 
 	// Change from 8090 to 8091 when doing scuffed replication testing (8090 -> launch 1 server, 8091 -> launch 2nd server)
@@ -70,61 +60,62 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(b_data, &body)
 	log("Body: " + fmt.Sprint(body))
 
-	// Get Value attribute (if exists)
-	value, exists := body["value"]
-	value_str, success := value.(string)
+	// Get value from body (if exists)
+	value, val_exists := body["value"]
+	value_str, val_success := value.(string)
 
-	// Get Metadata value 
-	meta_data, meta_success := body["casual-metadata"].(map[string]interface{})
-	log(fmt.Sprintf("Metadata:%s %t",meta_data, exists))
+	// Get meta-data (dependent version) from body
+	meta_data, meta_data_exists := body["causal-metadata"]
+	log(fmt.Sprintf("Request Meta-Data: %v", meta_data))
 
-	m_data_key, _ := meta_data["key"]
-	m_data_version, _ := meta_data["version"]
-
-	// create response variable, j_res is a map of |string -> any|
+	// Create response variable, j_res is a map of |string -> any|
 	var j_res js = js{}
 	var status int = http.StatusMethodNotAllowed
 
 
 	switch method {
 	case "GET":
-		// Did meta_data exist on the body, was it not null, and does the key match the current key?
-		if(meta_success && len(meta_data) != 0 && key == m_data_key){
-			log("GET has valid metadata")
-			valid := check_valid_metadata("GET",key, int(m_data_version.(float64)))
+		if(meta_data_exists){
+			valid := check_valid_metadata("GET", key, int(meta_data.(float64)))
 			if(!valid){
-				j_res, status = js{"error": "Causal dependencies not satisfied; try again later"}, http.StatusServiceUnavailable
+				j_res  = js{"error": "Causal dependencies not satisfied; try again later"}
+				status = http.StatusServiceUnavailable
 				break
 			}
 		}
+		// else condition for error if no meta-data ??
 		
+		// GET operation
 		j_res, status = get_key(key)
 		break
 
 
 	case "PUT":
-		// Did meta_data exist on the body, was it not null, and does the key match the current key?
-		if(meta_success && len(meta_data) != 0 && key == m_data_key){
-			log("PUT has valid metadata")
-			valid := check_valid_metadata("PUT",key, int(m_data_version.(float64)));
+		if(meta_data_exists){
+			valid := check_valid_metadata("PUT", key, int(meta_data.(float64)));
 			if(!valid){
-				j_res, status = js{"error": "Causal dependencies not satisfied; try again later"}, http.StatusServiceUnavailable
+				j_res = js{"error": "Causal dependencies not satisfied; try again later"}
+				status = http.StatusServiceUnavailable
 				break
 			}
 		}
+		// else condition for error if no meta-data ??
 
-		// Make sure there is a value attribute that is a string we can use
-		if !exists || !success {
-			j_res, status = js{"error": "PUT request does not specify a value"}, http.StatusBadRequest
+		// Check for string value
+		if !val_exists || !val_success {
+			j_res = js{"error": "PUT request does not specify a value"}
+			status = http.StatusBadRequest
 			break
 		}
 
+		// Check key length
 		if len(key) > 50 {
-			j_res, status = js{"error": "Key is too long"}, http.StatusBadRequest
+			j_res = js{"error": "Key is too long"}
+			status = http.StatusBadRequest
 			break;
 		}
 
-		// Put operation
+		// PUT operation
 		j_res, status = put_key(key, value_str)
 		
 		// Replicate if successful
@@ -137,20 +128,21 @@ func kvs_handler(w http.ResponseWriter, r *http.Request) {
 
 	case "DELETE":
 		// Did meta_data exist on the body, was it not null, and does the key match the current key?
-		if(meta_success && len(meta_data) != 0 && key == m_data_key){
-			log("Get has valid metadata")
-			valid := check_valid_metadata("DELETE",key, int(m_data_version.(float64)));
+		if(meta_data_exists){
+			valid := check_valid_metadata("DELETE", key, int(meta_data.(float64)));
 			if(!valid){
-				j_res, status = js{"error": "Causal dependencies not satisfied; try again later"}, http.StatusServiceUnavailable
+				j_res = js{"error": "Causal dependencies not satisfied; try again later"}
+				status = http.StatusServiceUnavailable
 				break
 			}
 		}
+		// else condition for error if no meta-data ??
 
-		// Delete operation
+		// DELETE operation
 		j_res, status = delete_key(key)
 		
 		// Replicate if successful
-		if (status == http.StatusCreated || status == http.StatusOK){
+		if (status == http.StatusOK){
 			log("Replicating DELETE")
 			go replicate("DELETE", key, "", get_version(key)); // Go launches a `goroutine` aka async call
 		}
