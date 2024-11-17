@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 
@@ -137,18 +138,36 @@ func replicate(method string, key string, value string, version int){
 
 		// Asynchronously communicate to server for each value
 		go communicate(req);
+		communicate(req);
 	}
 }
 
 
 func communicate(req *http.Request){
-	client := &http.Client{}
+
+	// We need to set a custom redirect time limit or else it will keep re-trying the request
+	// Check redirect function from Stack Overflow https://stackoverflow.com/questions/23297520/how-can-i-make-the-go-http-client-not-follow-redirects-automatically
+	client := &http.Client{
+		Timeout: 500 * time.Millisecond, 
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+        	return http.ErrUseLastResponse // Ensure that no retries ever happen
+    	},
+	}
 
 	// Probably check for down servers here with the response/error
-	//resp, err := client.Do(req);
-	client.Do(req);
+	resp, err := client.Do(req);
+	//client.Do(req);
 
 	// Maybe check for errors here and add/remove servers from the VIEW
+	if (err != nil){
+		log("Error communicating, server may be down")
+		// resp.Body.Close();
+		return;
+	}
+	log(fmt.Sprintf("Replication success : %s", resp.Status))
+
+	resp.Body.Close();
+	
 }
 
 
