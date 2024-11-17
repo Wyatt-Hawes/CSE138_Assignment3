@@ -9,8 +9,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
-)
 
+	"github.com/google/uuid"
+)
 
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
@@ -23,15 +24,14 @@ var kv_pairs = make(js)
 var kv_version = make(js)
 
 // DO NOT EDIT ORIGINAL_VIEW
-// var ORIGINAL_VIEW []string = strings.Split(os.Getenv("VIEW"),",");
-var ORIGINAL_VIEW = []string{"localhost:8090", "localhost:8091"}
+var ORIGINAL_VIEW []string = strings.Split(os.Getenv("VIEW"),",");
+// var ORIGINAL_VIEW = []string{"localhost:8090", "localhost:8091"}
 
-// var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
+ var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
 // Above works getting env, for testing, redefine
-var VIEW = []string{"localhost:8090", "localhost:8091"}
+//var VIEW = []string{"localhost:8090", "localhost:8091"}
 
-//var ip string = os.Getenv("IP");
-var IP = "localhost:8090"
+var ID = uuid.New()
 
 
 func main(){
@@ -192,13 +192,13 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	key_d, e2 := body["key"]
 	value_d, e3 := body["value"]
 	version_d, e7 := body["version"]
-	req_ip_d, e9 := body["ip"]
+	req_id_d, e9 := body["id"]
 
 	// Convert all to string
 	method, e4 := method_d.(string)
 	key, e5 := key_d.(string)
 	value, e6 := value_d.(string)
-	req_ip, e10 := req_ip_d.(string);
+	req_id, e10 := req_id_d.(uuid.UUID);
 
 	version_f, e8 := version_d.(float64)
 	new_version := int(version_f)
@@ -217,6 +217,11 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 		return;
 	}
 
+	// Message was from ourselves, reject
+	if(req_id == ID){
+		return;
+	}
+
 	// Check if version is acceptable, tie break with S1 < S2
 	// Version is outdated, ignore request
 	if (new_version < current_version){
@@ -224,7 +229,7 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	}
 
 	// If versions are equal and My ip is less than the request, ignore it, 'lower' IP takes priority
-	if(new_version == current_version && IP < req_ip){
+	if(new_version == current_version && ID.String() < req_id.String()){
 		log("Tiebreaker REJECT")
 		return;
 	}
@@ -235,13 +240,13 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	// Just do the same operation on our version
 	switch method{
 		case "PUT":
-			log("Received external Update for PUT |" + req_ip)
+			log("Received external Update for PUT")
 			put_key(key, value)
 			set_version(key, new_version)
 			break;
 
 		case "DELETE":
-			log("Received external Update for DELETE |" + req_ip)
+			log("Received external Update for DELETE")
 			delete_key(key);
 			set_version(key, new_version)
 			break;
