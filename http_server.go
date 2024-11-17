@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
@@ -27,11 +25,11 @@ var kv_version = make(js)
 var ORIGINAL_VIEW []string = strings.Split(os.Getenv("VIEW"),",");
 // var ORIGINAL_VIEW = []string{"localhost:8090", "localhost:8091"}
 
- var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
+var VIEW []string = strings.Split(os.Getenv("VIEW"),",");
 // Above works getting env, for testing, redefine
 //var VIEW = []string{"localhost:8090", "localhost:8091"}
 
-var ID = uuid.New()
+var IP = os.Getenv("SOCKET_ADDRESS");
 
 
 func main(){
@@ -44,7 +42,8 @@ func main(){
 	fmt.Fprintln(os.Stdout, "Server running!\n---------------")
 
 	// Change from 8090 to 8091 when doing scuffed replication testing (8090 -> launch 1 server, 8091 -> launch 2nd server)
-	http.ListenAndServe(":8090", nil)
+	//http.ListenAndServe(":8090", nil)
+	http.ListenAndServe(IP, nil)
 }
 
 
@@ -192,13 +191,13 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	key_d, e2 := body["key"]
 	value_d, e3 := body["value"]
 	version_d, e7 := body["version"]
-	req_id_d, e9 := body["id"]
+	req_ip_d, e9 := body["ip"]
 
 	// Convert all to string
 	method, e4 := method_d.(string)
 	key, e5 := key_d.(string)
 	value, e6 := value_d.(string)
-	req_id, e10 := req_id_d.(uuid.UUID);
+	req_ip, e10 := req_ip_d.(string);
 
 	version_f, e8 := version_d.(float64)
 	new_version := int(version_f)
@@ -218,18 +217,14 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	}
 
 	// Message was from ourselves, reject
-	if(req_id == ID){
+	if(req_ip == IP){
 		return;
 	}
 
 	// Check if version is acceptable, tie break with S1 < S2
-	// Version is outdated, ignore request
-	if (new_version < current_version){
-		return;
-	}
 
 	// If versions are equal and My ip is less than the request, ignore it, 'lower' IP takes priority
-	if(new_version == current_version && ID.String() < req_id.String()){
+	if(new_version == current_version && IP < req_ip){
 		log("Tiebreaker REJECT")
 		return;
 	}

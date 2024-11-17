@@ -117,13 +117,18 @@ func replicate(method string, key string, value string, version int){
 			the way it is right now, a request also gets sent to ourself, which has no effect ofc but is annoying
 		*/
 
+		// Dont send message to ourself
+		if (v == IP){
+			continue;
+		}
+
 		// For each view, make a request to it with the update
 		// Form the full URL
 		url:= fmt.Sprintf("http://%s/update",v)
 		log(fmt.Sprintf("URL:%s",url))
 
 		// Form body with all needed info (for now)
-		body := js{"method":method,"key":key,"value":value, "version": version, "id":ID}
+		body := js{"method":method,"key":key,"value":value, "version": version, "ip":IP}
 		body_js, _ := json.Marshal(body)
 
 		// Create the request
