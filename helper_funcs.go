@@ -25,11 +25,11 @@ func check_valid_metadata(method string,key string, request_version int)(bool){
 		break
 
 	case "PUT", "DELETE":
-		// Check request version, server_version must be EQUAL or GREATER, if LESS, then reject
-		if(request_version < server_version){
+		// Implementation 2, PUT must fail if reqeust version is above current version (according to tests)
+		if(request_version != server_version){
 			return false
 		}
-		set_version(key,request_version)
+		//set_version(key,request_version) // This was only for updating the version on receiving a version ahead, but since its not allowed theres no point
 		break
 	
 	default:
