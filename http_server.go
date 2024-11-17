@@ -205,21 +205,21 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	new_version := int(version_f)
 	current_version := get_version(key)
 
-	// log(body)
-	// log(fmt.Sprintf("%t %t %t %t %t %t %t %t",!e1, !e2, !e3, !e4, !e5, !e6, !e7, !e8))
-	// log(version)
-	// log(reflect.TypeOf(version))
-	// log(version_d)
-	// log(reflect.TypeOf(version_d))
-	// log(fmt.Sprintf("Type is %t", version))
+	var j_res js = js{}
+	j_data, _ := json.Marshal(j_res)
+
 	// If any errors, drop request
 	if(!e1 || !e2 || !e3 || !e4  || !e5 || !e6 || !e7 || !e8 || !e9 || !e10){
 		log("Error with update")
+		w.WriteHeader(http.StatusOK);
+		w.Write(j_data)
 		return;
 	}
 
 	// Message was from ourselves, reject
 	if(req_ip == IP){
+		w.WriteHeader(http.StatusOK);
+		w.Write(j_data)
 		return;
 	}
 
@@ -228,6 +228,8 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	// If versions are equal and My ip is less than the request, ignore it, 'lower' IP takes priority
 	if(new_version == current_version && IP < req_ip){
 		log("Tiebreaker REJECT")
+		w.WriteHeader(http.StatusOK);
+		w.Write(j_data)
 		return;
 	}
 
@@ -252,6 +254,7 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 			break;
 	}
 	w.WriteHeader(http.StatusOK);
+	w.Write(j_data)
 	return;
 }
 
