@@ -224,6 +224,12 @@ func update_handler(w http.ResponseWriter, r *http.Request){
 	}
 
 	// Check if version is acceptable, tie break with S1 < S2
+	if (new_version < current_version){
+		// reject request if new_version < current_version
+		w.WriteHeader(http.StatusOK);
+		w.Write(j_data)
+		return;
+	}
 
 	// If versions are equal and My ip is less than the request, ignore it, 'lower' IP takes priority
 	if(new_version == current_version && IP < req_ip){

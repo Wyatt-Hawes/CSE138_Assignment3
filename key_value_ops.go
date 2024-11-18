@@ -138,7 +138,6 @@ func replicate(method string, key string, value string, version int){
 
 		// Asynchronously communicate to server for each value
 		go communicate(req);
-		communicate(req);
 	}
 }
 
@@ -161,7 +160,6 @@ func communicate(req *http.Request){
 	// Maybe check for errors here and add/remove servers from the VIEW
 	if (err != nil){
 		log("Error communicating, server may be down")
-		// resp.Body.Close();
 		return;
 	}
 	log(fmt.Sprintf("Replication success : %s", resp.Status))
