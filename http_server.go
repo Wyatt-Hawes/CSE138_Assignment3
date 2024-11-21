@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
-
 
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
@@ -38,6 +38,7 @@ func main(){
 	http.HandleFunc("/kvs/", kvs_handler)
 	http.HandleFunc("/update", update_handler)
 	http.HandleFunc("/view", view_handler)
+	http.HandleFunc("/all", all_handler)
 
 	fmt.Fprintln(os.Stdout,"View: ", VIEW)
 	fmt.Fprintln(os.Stdout,"IP: ", IP)
@@ -48,7 +49,27 @@ func main(){
 
 	// Broadcast PUT-View
 	fmt.Fprintln(os.Stdout, "notifying instances...\n")
-	go notifyInstancesOnStartup()
+
+	// Call immediately 
+	go notifyInstances()
+
+	// Get all data from other servers
+	get_all_data()
+
+	// Call every 2 seconds
+	ticker := time.NewTicker(2 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+		select {
+			case <- ticker.C:
+				go notifyInstances()
+			case <- quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 
 	http.ListenAndServe(IP, nil)
 }
@@ -328,4 +349,68 @@ func view_handler(w http.ResponseWriter, r *http.Request){
 	log("----------------")
 	w.WriteHeader(status)
 	w.Write(j_data)
+}
+
+func all_handler(w http.ResponseWriter, r *http.Request){
+	all_data := js{"pairs": kv_pairs, "versions": kv_version}
+	j_data, _ := json.Marshal(all_data);
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(j_data);
+}
+
+func get_all_data(){
+	for _, addr := range ORIGINAL_VIEW {  // ignore index
+		if addr == IP {
+				// don't notify self
+				log("ignoring self")
+				continue
+		}
+
+		log("Grabbing data from " + addr)
+		get_data(addr);
+	}
+}
+
+func get_data(addr string){
+
+	url:= fmt.Sprintf("http://%s/all",addr)
+
+	// Create the request
+	req, _ := http.NewRequest("POST", url, nil)
+	req.Header.Set("Content-Type", "application/json");
+
+	client := &http.Client{
+	Timeout: 500 * time.Millisecond, 
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse // Ensure that no retries ever happen
+		},
+	}
+
+	resp, err := client.Do(req)
+
+	if (err != nil){
+		log(fmt.Sprintf("Error grabbing data from %s, server may be down", addr))
+		return;
+	}
+
+	b_data, _ := io.ReadAll(resp.Body)
+	var body js
+	json.Unmarshal(b_data, &body)
+	log("Response Body: " + fmt.Sprint(body))
+
+	pairs := body["pairs"].(map[string]interface{})
+	versions := body["versions"].(map[string]interface{})
+
+	// Loop over all versions, compare it to our version, if its >, use the new value
+	for key, version_d := range versions{
+		version := int(version_d.(float64))
+		our_version := get_version(key)
+		if our_version < version{
+			kv_pairs[key] = pairs[key]
+			set_version(key,version)
+		}
+	}
+
+
 }
