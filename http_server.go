@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+
 // This is a shorthand for the MAPS of GO so we dont need to type that long ass type
 type js map[string]interface{}
 
@@ -38,12 +39,16 @@ func main(){
 	http.HandleFunc("/update", update_handler)
 	http.HandleFunc("/view", view_handler)
 
-	fmt.Fprintln(os.Stdout,"View: ", VIEW);
-	fmt.Fprintln(os.Stdout,"IP: ", IP);
+	fmt.Fprintln(os.Stdout,"View: ", VIEW)
+	fmt.Fprintln(os.Stdout,"IP: ", IP)
 	fmt.Fprintln(os.Stdout, "Server running!\n---------------")
 
 	// Change from 8090 to 8091 when doing scuffed replication testing (8090 -> launch 1 server, 8091 -> launch 2nd server)
 	//http.ListenAndServe(":8090", nil)
+
+	// Broadcast PUT-View
+	fmt.Fprintln(os.Stdout, "notifying instances...\n")
+	go notifyInstancesOnStartup()
 
 	http.ListenAndServe(IP, nil)
 }
