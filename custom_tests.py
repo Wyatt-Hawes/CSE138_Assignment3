@@ -42,7 +42,7 @@ def sleep(n):
     multiplier = 1
     # Increase the multiplier if you need to during debugging, but make sure to
     # set it back to 1 and test your work before submitting.
-    print('(sleeping {} seconds)'.format(n*multiplier))
+    print('(sleeping {} seconds to stabilize)'.format(n*multiplier))
     time.sleep(n*multiplier)
 
 
@@ -142,20 +142,22 @@ class TestHW3(unittest.TestCase):
 
     def test_single_server_operations(self):
         print('> Lets test standard operations on a single server.')
-        rep = alice
+        host_port = alice.host_port
+        metadata = None
 
         print('> Insert test_key:test_value, should get 201')
-        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, 'test_key'),
+        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, host_port, 'test_key'),
                 json={'value':'test_value', 'causal-metadata': metadata})
+        self.assertIn('result', response.json(), response.status_code)
         self.assertEqual(response.status_code, 201)
-        self.assertIn('result', response.json())
+        #print(response.json())
         self.assertIn('causal-metadata', response.json())
         self.assertEqual(response.json()['result'], 'created')
         metadata = response.json()['causal-metadata']
         print('Success')
 
         print('> Put test_key:overwrite, should get 200')
-        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, 'test_key'),
+        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, host_port, 'test_key'),
                 json={'value':'overwrite', 'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
@@ -165,7 +167,7 @@ class TestHW3(unittest.TestCase):
         print('Success')
 
         print('> PUT 400 error on keylen > 50')
-        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, '123456789012345678901234567890123456789012345678901234567890'),
+        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, host_port, '123456789012345678901234567890123456789012345678901234567890'),
                 json={'value':'my key was wayyy too long', 'causal-metadata': metadata})
         self.assertEqual(response.status_code, 400)
         self.assertIn('error', response.json())
@@ -173,7 +175,7 @@ class TestHW3(unittest.TestCase):
         print('Success')
 
         print('> GET test_key should return overwrite')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, 'test_key'),
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, host_port, 'test_key'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
@@ -184,7 +186,7 @@ class TestHW3(unittest.TestCase):
         print('Success')
 
         print('> GET unknown key should 404')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, 'this_key_does_not_exist'),
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, host_port, 'this_key_does_not_exist'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 404)
         self.assertIn('error', response.json())
@@ -192,15 +194,15 @@ class TestHW3(unittest.TestCase):
         print('Success')
 
         print('> Delete key unknown key 404')
-        response = requests.delete('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, 'this_key_does_not_exist'),
+        response = requests.delete('http://{}:{}/kvs/{}'.format(hostname, host_port, 'this_key_does_not_exist'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 404)
         self.assertIn('error', response.json())
         self.assertEqual(response.json()['error'], 'Key does not exist')
         print('Success')
 
-        print('> Delete key  test_key 200')
-        response = requests.delete('http://{}:{}/kvs/{}'.format(hostname, remaining.host_port, 'this_key_does_not_exist'),
+        print('> Delete key test_key 200')
+        response = requests.delete('http://{}:{}/kvs/{}'.format(hostname, host_port, 'test_key'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
@@ -221,9 +223,7 @@ class TestHW3(unittest.TestCase):
         prev_metadata = response.json()['causal-metadata']
         print('Success')
 
-        print('Wait for 1 second to stabilize')
         sleep(1)
-        print('Done waiting')
 
         print('> All replicas should now have key_test:my_val')
         for replica in all_replicas:
@@ -237,11 +237,13 @@ class TestHW3(unittest.TestCase):
             print(replica.name + ' passed')
         print('All Successful')
 
-        print('Disconnect Carol')
+        print('Disconnect Carol\n============')
         disconnectFromNetwork(carol)
-        print('Successfully disconnected')
+        print('============\nSuccessfully disconnected')
+        #print('Wait for 5 seconds to stabilize')
+        #sleep(5)
 
-        print('Put key_test:another_key in alice. This should replicate to bob but not carol (since disconnected)')
+        print('> Put key_test:another_key in alice. This should replicate to bob but not carol (since disconnected)')
         response = requests.put('http://{}:{}/kvs/{}'.format(hostname, alice.host_port, 'key_test'),
                 json={'value':'another_key', 'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
@@ -250,13 +252,14 @@ class TestHW3(unittest.TestCase):
         self.assertEqual(response.json()['result'], 'replaced')
         metadata = response.json()['causal-metadata']
 
-        print('Wait for 1 second to stabilize')
         sleep(1)
-        print('Done waiting')
+        print('Reconnect Carol\n============')
+        connectToNetwork(carol)
+        print('============\nDone connecting Carol')
         print('Alice & Bob should have new key, Carol should have old')
 
         print('> ALICE GET key_test should return another_key')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, alice.host_port, 'test_key'),
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, alice.host_port, 'key_test'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
@@ -266,7 +269,7 @@ class TestHW3(unittest.TestCase):
         print('Success')
 
         print('> BOB GET key_test should return another_key')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, bob.host_port, 'test_key'),
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, bob.host_port, 'key_test'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
@@ -276,13 +279,13 @@ class TestHW3(unittest.TestCase):
         print('Success')
 
         print('> CAROL GET with most recent metadata should 503')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'test_key'),
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'key_test'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 503)
         print('Success')
 
-        print('> CAROL GET key_test should return my_val (Since it couldnt be replicated to)')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'test_key'),
+        print('> CAROL GET with old metadata, key_test should return my_val (Since it couldnt be replicated to)')
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'key_test'),
                 json={'causal-metadata': prev_metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
@@ -291,22 +294,157 @@ class TestHW3(unittest.TestCase):
         self.assertEqual(response.json()['value'],'my_val')
         print('Success')
 
-        print('> Killing CAROL and restarting should make the key available')
+        print('> Killing CAROL and restarting should make the key available\n============')
         killInstance(carol)
         print('> Now launch carol again')
         runReplica(carol,all_replicas)
-        print('> Give 5 seconds to stabilize')
+        print('> Give 5 seconds to stabilize\n============\n')
         sleep(5)
         print('> Now carol should have the most up to date value, another_key')
-        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'test_key'),
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'key_test'),
                 json={'causal-metadata': metadata})
         self.assertEqual(response.status_code, 200)
         self.assertIn('result', response.json())
         self.assertIn('causal-metadata', response.json())
         self.assertEqual(response.json()['result'], 'found')
         self.assertEqual(response.json()['value'],'another_key')
+        metadata = response.json()['causal-metadata']
         print('Success')
-        
+        print('> Now delete key_test on carol')
+        response = requests.delete('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'key_test'),
+                json={'causal-metadata': metadata})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('result', response.json())
+        self.assertIn('causal-metadata', response.json())
+        self.assertEqual(response.json()['result'], 'deleted')
+        metadata = response.json()['causal-metadata']
+        print('Success')
+        sleep(1)
+        print('> Alice, Carol, and Bob should all 404 key_test')
+        print('> Alice...')
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, alice.host_port, 'key_test'),
+                json={'causal-metadata': metadata})
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Key does not exist')
+        print('Success')
+        print('> Bob...')
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, bob.host_port, 'key_test'),
+                json={'causal-metadata': metadata})
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Key does not exist')
+        print('Success')
+        print('> Carol...')
+        response = requests.get('http://{}:{}/kvs/{}'.format(hostname, carol.host_port, 'key_test'),
+                json={'causal-metadata': metadata})
+        self.assertEqual(response.status_code, 404)
+        self.assertIn('error', response.json())
+        self.assertEqual(response.json()['error'], 'Key does not exist')
+        print('Success')
+    
+    def test_view_replication(self):
+        #removed = carol
+        #remaining_replicas = sorted(set(all_replicas) - set([removed]))
+        #return = viewSet()
+        # THIS TEST IS UNCHANGED FROM THE GIVEN TESTS
+        metadata = None
+
+        print('=== Check replica views')
+        for replica in all_replicas:
+            response = requests.get('http://{}:{}/view'.format(hostname, replica.host_port))
+            self.assertEqual(response.status_code, 200, msg='at replica, {}'.format(replica))
+            self.assertIn('view', response.json(), msg='at replica, {}'.format(replica))
+            self.assertEqual(set(response.json()['view']), viewSet(all_replicas), msg='at replica, {}'.format(replica))
+
+
+        print('>>> Put apple:strudel into the store')
+
+        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, alice.host_port, 'apple'),
+                json={'value':'strudel', 'causal-metadata': metadata})
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('result', response.json())
+        self.assertIn('causal-metadata', response.json())
+        self.assertEqual(response.json()['result'], 'created')
+        metadata = response.json()['causal-metadata']
+
+        print('... Wait for replication')
+        sleep(5)
+
+        print('=== Check apple:strudel at replicas {}'.format(','.join(r.name for r in all_replicas)))
+        for replica in all_replicas:
+            response = requests.get('http://{}:{}/kvs/{}'.format(hostname, replica.host_port, 'apple'),
+                    json={'causal-metadata':metadata})
+            self.assertEqual(response.status_code, 200, msg='at replica, {}'.format(replica))
+            self.assertIn('result', response.json(), msg='at replica, {}'.format(replica))
+            self.assertIn('causal-metadata', response.json(), msg='at replica, {}'.format(replica))
+            self.assertEqual(response.json()['value'], 'strudel', msg='at replica, {}'.format(replica))
+            metadata = response.json()['causal-metadata']
+
+
+        removed = carol
+        remaining_replicas = sorted(set(all_replicas) - set([removed]))
+        print('>>> Remove replica {}'.format(removed))
+        killInstance(removed)
+
+        print('... Wait for stabilization')
+        sleep(5)
+
+
+        print('>>> Put chocolate:eclair into the store')
+        response = requests.put('http://{}:{}/kvs/{}'.format(hostname, alice.host_port, 'chocolate'),
+                json={'value':'eclair', 'causal-metadata':metadata})
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('result', response.json())
+        self.assertIn('causal-metadata', response.json())
+        self.assertEqual(response.json()['result'], 'created')
+        metadata = response.json()['causal-metadata']
+
+        print('... Wait for replication, down detection, and stabilization')
+        sleep(5)
+
+        print('=== Check chocolate:eclair at replicas {}'.format(','.join(r.name for r in remaining_replicas)))
+        for replica in remaining_replicas:
+            response = requests.get('http://{}:{}/kvs/{}'.format(hostname, replica.host_port, 'chocolate'),
+                json={'causal-metadata':metadata})
+            self.assertEqual(response.status_code, 200, msg='at replica, {}'.format(replica))
+            self.assertIn('result', response.json(), msg='at replica, {}'.format(replica))
+            self.assertIn('causal-metadata', response.json(), msg='at replica, {}'.format(replica))
+            self.assertEqual(response.json()['value'], 'eclair', msg='at replica, {}'.format(replica))
+            metadata = response.json()['causal-metadata']
+
+        print('=== Check view at replicas {}'.format(','.join(r.name for r in remaining_replicas)))
+        for replica in remaining_replicas:
+            response = requests.get('http://{}:{}/view'.format(hostname, replica.host_port))
+            self.assertEqual(response.status_code, 200, msg='at replica, {}'.format(replica))
+            self.assertIn('view', response.json(), msg='at replica, {}'.format(replica))
+            self.assertEqual(set(response.json()['view']), viewSet(remaining_replicas), msg='at replica, {}'.format(replica))
+
+
+        print('>>> Start replica {}'.format(removed))
+        runReplica(removed, all_replicas)
+
+        print('... Wait for stabilization')
+        sleep(5)
+
+
+        print('=== Check replica views')
+        for replica in all_replicas:
+            response = requests.get('http://{}:{}/view'.format(hostname, replica.host_port))
+            self.assertEqual(response.status_code, 200, msg='at replica, {}'.format(replica))
+            self.assertIn('view', response.json(), msg='at replica, {}'.format(replica))
+            self.assertEqual(set(response.json()['view']), viewSet(all_replicas), msg='at replica, {}'.format(replica))
+
+
+        print('=== Check keys apple,chocolate at replicas {}'.format(removed.name))
+        for key,val in {'apple':'strudel', 'chocolate':'eclair'}.items():
+            response = requests.get('http://{}:{}/kvs/{}'.format(hostname, removed.host_port, key),
+                json={'causal-metadata':metadata})
+            self.assertEqual(response.status_code, 200, msg='for key, {}'.format(key))
+            self.assertIn('result', response.json(), msg='for key, {}'.format(key))
+            self.assertIn('causal-metadata', response.json(), msg='for key, {}'.format(key))
+            self.assertEqual(response.json()['value'], val, msg='for key, {}'.format(key))
+            metadata = response.json()['causal-metadata']
         
 
 
