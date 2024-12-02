@@ -9,9 +9,11 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 )
 
+var view_mutex sync.Mutex
 
 func get_all_view() (js, int) {
 	return js{"view": VIEW}, http.StatusOK
@@ -19,6 +21,9 @@ func get_all_view() (js, int) {
 
 
 func add_view(new_view_address string)(js, int){
+	view_mutex.Lock()
+	defer view_mutex.Unlock()
+	
 	log("got add_view request (new address: " + new_view_address + ")")
 
 	if slices.Contains(VIEW, new_view_address){
@@ -35,6 +40,9 @@ func add_view(new_view_address string)(js, int){
 
 
 func delete_view(view_to_remove string)(js, int){
+	view_mutex.Lock()
+	defer view_mutex.Unlock()
+	
 	if !slices.Contains(VIEW, view_to_remove){
 		return js{"error":"View has no such replica"}, http.StatusNotFound
 	}
