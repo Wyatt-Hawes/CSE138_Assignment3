@@ -7,11 +7,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
+var key_mutex sync.RWMutex
+var version_mutex sync.RWMutex
 
 func get_key(key string) (js, int) {
+	key_mutex.RLock()
+	defer key_mutex.RUnlock()
+
 	var res js
 	var status int
 
@@ -43,6 +49,8 @@ func get_key(key string) (js, int) {
 
 
 func put_key(key string, value string) (js, int) {
+	key_mutex.Lock()
+	defer key_mutex.Unlock()
 	var res js
 	var status int
 
@@ -80,6 +88,9 @@ func put_key(key string, value string) (js, int) {
 
 
 func delete_key(key string) (js, int) {
+	key_mutex.Lock()
+	defer key_mutex.Unlock()
+	
 	var res js
 	var status int
 
@@ -168,7 +179,7 @@ func communicate(req *http.Request){
 	
 }
 
-
+// All functions only called inside previous critical sections or only synchronously on main thread
 func get_add_version(key string)(version int){
 	vs_d, exists := kv_version[key];
 	vs, e := vs_d.(int)
