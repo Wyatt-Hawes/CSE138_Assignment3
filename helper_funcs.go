@@ -19,6 +19,7 @@ func check_valid_metadata(method string,key string, request_version int)(bool){
 	switch (method){
 	case "GET":
 		// Check request version. If request is GREATER THAN server version, invalid request(?)
+		// Also passes tests if request_version != server_version
 		if(request_version > server_version){
 			return false
 		}
