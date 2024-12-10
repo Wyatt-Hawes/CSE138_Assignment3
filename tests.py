@@ -1,12 +1,4 @@
-################### 
-# Course: CSE138
-# Date: Fall 2023
-# Assignment: 3
-# Authors: Reza NasiriGerdeh, Zach Gottesman, Lindsey Kuper, Patrick Redmond
-# This document is the copyrighted intellectual property of the authors.
-# Do not copy or distribute in any form without explicit permission.
-###################
-
+# Tests using the setup from: Reza NasiriGerdeh, Zach Gottesman, Lindsey Kuper, Patrick Redmond
 import requests
 import subprocess
 import time
@@ -312,7 +304,7 @@ class TestHW3(unittest.TestCase):
         print('Success')
         print('> Now lets check our 503 errors if given outdated metadata')
         
-        # What is the actuall condition here?
+        # What is the actual condition here?
         # print('> GETS should 503 with outdated metadata')
         # for replica in all_replicas:
         #     response = requests.get('http://{}:{}/kvs/{}'.format(hostname, replica.host_port, 'key_test'),
